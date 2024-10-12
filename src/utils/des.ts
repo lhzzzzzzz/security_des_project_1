@@ -1,9 +1,11 @@
+import { appendFile } from "fs";
 import { IP, IP_INVERSE, E_SELECTION, S_BOX, P_TRANSFORM } from "./constants";
 import { getOutPutKeys, rangeBits } from "./key";
 
 
 // 将二进制字符串转换为十六进制字符串
 const binaryToHex = (binary: string): string => {
+    console.log("Binary: " + binary);
     if (binary.length % 4 !== 0) {
         throw new Error("Binary string length must be a multiple of 4.");
     }
@@ -35,18 +37,7 @@ const hexToBinary = (hex: string): string => {
 
 
 
-// const stringToBinary = (input: string): string => {
-//     let binaryString = '';
 
-//     for (let i = 0; i < input.length; i++) {
-//         const binaryChar = input.charCodeAt(i).toString(2).padStart(8, '0');
-//         binaryString += binaryChar;
-//     }
-
-//     console.log("1: " + binaryString);
-
-//     return binaryString;
-// };
 
 const stringToBinary = (input: string): string => {
     // 使用TextEncoder将字符串转换为UTF-8编码的字节数组
@@ -71,19 +62,7 @@ const stringToBinary = (input: string): string => {
     return paddedBinaryString;
 };
 
-// const binaryToString = (binary: string): string => {
-//     let result = '';
 
-//     for (let i = 0; i < binary.length; i += 8) {
-//         const byte = binary.slice(i, i + 8);
-//         const charCode = parseInt(byte, 2);
-//         result += String.fromCharCode(charCode);
-//     }
-
-//     console.log("2: " + result);
-
-//     return result;
-// };
 
 export const binaryToString = (binary: string): string => {
     const bytes = [];
@@ -163,9 +142,9 @@ const sBoxTransform = (input48bit: string): string => {
         const sixBits = input48bit.slice(i * 6, i * 6 + 6);
 
         // 前两位用于选择行索引a (0到3)
-        const row = parseInt(sixBits.slice(0, 1), 2); // 前两位与最后一位组合成行索引
+        const row = parseInt(sixBits.slice(0, 1) + sixBits.slice(5), 2); // 第一位与最后一位组合成行索引
         // 中间四位用于选择列索引b (0到15)
-        const column = parseInt(sixBits.slice(2, 5), 2); // 中间四位组合成列索引
+        const column = parseInt(sixBits.slice(1, 5), 2); // 中间四位组合成列索引
 
         // 使用S-Box进行查找，得到0到15的值
         const sBoxValue = S_BOX[i][row][column];
@@ -194,9 +173,12 @@ const createDESCipherText = (input: string, key: string): string => {
         // 执行IP置换
         const afterIP = rangeBits(paddedBlock, IP, 64);
         let splitArray = splitBinary(afterIP);
+        console.log("P置换结果：", splitArray)
 
         // 进行16轮加密
         for (let i = 0; i < 16; i++) {
+            const temp = splitArray[1]
+            console.log(i, "temp: " + temp)
             console.log("i: " + i);
             console.log("splitArray: " + splitArray);
             const e = e_transform(splitArray[1]);
@@ -211,10 +193,14 @@ const createDESCipherText = (input: string, key: string): string => {
             const toLeft = xorBinaryStrings(splitArray[0], p, 32);
             console.log("toLeft: " + toLeft);
             splitArray[1] = toLeft;
-            swapStrings(splitArray);
+            console.log("temp2: " + temp)
+            splitArray[0] = temp;
+            console.log(i, "+++++++", splitArray)
         }
 
         // 16轮加密结束后进行逆IP置换
+        swapStrings(splitArray);
+        console.log("splitArray: " + splitArray);
         const afterIPInverse = rangeBits(splitArray[0] + splitArray[1], IP_INVERSE, 64);
 
         // 将结果拼接到最终的密文
@@ -227,62 +213,13 @@ const createDESCipherText = (input: string, key: string): string => {
 };
 
 
-// const createDESCipherText = (input: string, key: string): string => {
-//     const keyArray = getOutPutKeys(key);
-//     const textBinary = stringToBinary(input);
-//     const afterIP = rangeBits(textBinary, IP, 64);
-//     const splitArray = splitBinary(afterIP);
-//     for (let i = 0; i < 16; i++) {
-
-//         const e = e_transform(splitArray[1]);
-
-//         const xorResult = xorBinaryStrings(e, keyArray[i], 48);
-
-//         const sBoxResult = sBoxTransform(xorResult);
-
-//         const p = rangeBits(sBoxResult, P_TRANSFORM, 32);
-
-//         const toLeft = xorBinaryStrings(splitArray[0], p, 32);
-
-//         splitArray[1] = toLeft;
-//         swapStrings(splitArray);
-//     }
-//     const afterIPInverse = rangeBits(splitArray[0] + splitArray[1], IP_INVERSE, 64);
-//     const result = binaryToString(afterIPInverse);
-
-//     return result;
-// }
-
-// const createDESPlainText = (input: string, key: string): string => {
-//     const keyArray = getOutPutKeys(key);
-//     // const textBinary = stringToBinary(input);
-//     // const afterIP = rangeBits(textBinary, IP_INVERSE, 64);
-//     const afterIP = rangeBits(input, IP_INVERSE, 64);
-
-//     const splitArray = splitBinary(afterIP);
-//     for (let i = 15; i >= 0; i--) {
-//         const e = e_transform(splitArray[1]);
-//         const xorResult = xorBinaryStrings(e, keyArray[i], 48);
-//         const sBoxResult = sBoxTransform(xorResult);
-//         const p = rangeBits(sBoxResult, P_TRANSFORM, 32);
-//         const toLeft = xorBinaryStrings(splitArray[0], p, 32);
-//         splitArray[1] = toLeft;
-//         swapStrings(splitArray);
-//     }
-//     const afterIPInverse = rangeBits(splitArray[0] + splitArray[1], IP, 64);
-//     const result = binaryToString(afterIPInverse);
-
-//     return result;
-// }
-
 const createDESPlainText = (input: string, key: string): string => {
     const keyArray = getOutPutKeys(key);  // 获取密钥
-    let plainText = '';  // 存储解密后的结果
+    let binaryText = ''
 
-    console.log("Initial Input Binary: ", input);
+    console.log("输入的十六进制数: ", input);
     input = hexToBinary(input);  // 转换密文为二进制
-    console.log("Initial Input Binary: ", input);
-    console.log("Key Array: ", keyArray);
+    console.log("转二进制: ", input);
 
     // 按64位分割输入的密文，逐块解密
     for (let blockStart = 0; blockStart < input.length; blockStart += 64) {
@@ -290,7 +227,7 @@ const createDESPlainText = (input: string, key: string): string => {
         console.log(`Processing block ${blockStart / 64 + 1}:`, block);
 
         // 执行逆IP置换
-        const afterIP = rangeBits(block, IP_INVERSE, 64);
+        const afterIP = rangeBits(block, IP, 64);
         console.log("After Initial Inverse IP:", afterIP);
 
         let splitArray = splitBinary(afterIP);
@@ -298,41 +235,37 @@ const createDESPlainText = (input: string, key: string): string => {
 
         // 进行16轮解密（从15到0）
         for (let i = 15; i >= 0; i--) {
+            const temp = splitArray[1]
             const e = e_transform(splitArray[1]);
             console.log(`Round ${16 - i}: Expansion (E) result:`, e);
 
             const xorResult = xorBinaryStrings(e, keyArray[i], 48);
+            console.log("这次的key是：", keyArray[i])
             console.log(`Round ${16 - i}: XOR result with key:`, xorResult);
 
             const sBoxResult = sBoxTransform(xorResult);
             console.log(`Round ${16 - i}: S-Box transformation result:`, sBoxResult);
 
             const p = rangeBits(sBoxResult, P_TRANSFORM, 32);
-            console.log(`Round ${16 - i}: Permutation (P) result:`, p);
+            console.log(`Round ${16 - i}: P置换后:`, p);
 
             const toLeft = xorBinaryStrings(splitArray[0], p, 32);
             console.log(`Round ${16 - i}: XOR with Left half (L):`, toLeft);
 
             splitArray[1] = toLeft;
-            swapStrings(splitArray);
+            splitArray[0] = temp;
             console.log(`Round ${16 - i}: After Swap: L and R:`, splitArray);
         }
 
         // 解密结束后进行IP置换
-        const afterIPInverse = rangeBits(splitArray[0] + splitArray[1], IP, 64);
+        swapStrings(splitArray);
+        const afterIPInverse = rangeBits(splitArray[0] + splitArray[1], IP_INVERSE, 64);
         console.log("After Final IP:", afterIPInverse);
 
-        // 将解密后的二进制转换为字符，并拼接到结果
-        const decodedBlock = binaryToString(afterIPInverse);
-        console.log(`Decoded Block ${blockStart / 64 + 1}:`, decodedBlock);
-
-        plainText += decodedBlock;
+        binaryText = binaryText + afterIPInverse;
     }
-
-    console.log("Final Decoded PlainText:", plainText);
-    return plainText;  // 返回解密后的明文
+    return binaryToString(binaryText);  // 返回解密后的明文
 };
-
 
 
 export const getDESCipherText = (input: string, key: string): string => {

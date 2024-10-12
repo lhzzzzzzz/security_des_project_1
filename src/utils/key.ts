@@ -1,17 +1,5 @@
 import { KEY_SHIFT, PC_1, PC_2 } from "./constants";
 
-
-// 字符串转二进制
-const stringToBinary = (input: string): string => {
-    let binaryString = '';
-    for (let i = 0; i < input.length; i++) {
-        // 取ASCII字符的后7位
-        const binaryChar = input.charCodeAt(i).toString(2).padStart(8, '0').slice(-7);
-        binaryString += binaryChar;
-    }
-    return binaryString;
-};
-
 // 计算奇校验位
 const calculateParityBit = (sevenBits: string): string => {
     const countOfOnes = sevenBits.split('').filter(bit => bit === '1').length;
@@ -39,6 +27,7 @@ const generate64BitKey = (input: string): string => {
 
     return binaryKey;
 };
+
 
 // 将两个64位二进制密钥进行异或运算
 const xorBinaryKeys = (key1: string, key2: string): string => {
@@ -89,6 +78,7 @@ export const rangeBits = (
         // 获取映射表中的位置信息
         const index = permutationArray[i] - 1; // 映射表是从1开始，字符串索引从0开始，所以减1
         rearrangedString += binaryString[index];
+        // console.log("i ", i, "  index ", index, binaryString[index])
     }
 
     return rearrangedString;
@@ -116,9 +106,9 @@ export const generateSubKeys = (key56bit: string): string[] => {
     // 第二步：将56位密钥拆分为前28位和后28位
     let left28bit = key56bit.slice(0, 28);
     let right28bit = key56bit.slice(28, 56); // 确保切片到56位
-    // console.log(4);
-    // console.log(left28bit);
-    // console.log(right28bit);
+
+    console.log(left28bit);
+    console.log(right28bit);
 
     const subKeys: string[] = [];
 
@@ -142,14 +132,14 @@ export const generateSubKeys = (key56bit: string): string[] => {
 
 
 const outPutKeys = (input: string): string[] => {
+    // const final64BitKey = strToBin(input);
     const final64BitKey = processKey(input);
-    // console.log(1);
-    console.log(final64BitKey);
+    console.log("final64BitKey: ", final64BitKey);
     const afterPC1 = rangeBits(final64BitKey, PC_1, 56);
-    // console.log(2);
-    // console.log(afterPC1);
+
+    console.log(afterPC1);
     const subKeys = generateSubKeys(afterPC1);
-    // console.log(3);
+
     console.log(subKeys);
     return subKeys;
 };
