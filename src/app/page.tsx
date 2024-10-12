@@ -122,9 +122,9 @@ export default function App() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Label htmlFor="input-type">Input Mode</Label>
-            <Select onValueChange={(value: 'text' | 'file') => setInputType(value)}>
+            <Select onValueChange={(value: 'text' | 'file') => setInputType(value)} value={inputType}>
               <SelectTrigger>
-                <SelectValue placeholder="Select input method" />
+                <SelectValue>{inputType === 'text' ? 'Text Input' : 'File Upload'}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="text">Text Input</SelectItem>
